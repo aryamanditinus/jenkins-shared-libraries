@@ -1,0 +1,38 @@
+pipeline {
+  agent any
+
+  environment {
+    PROJECT_NAME = 'your-project-name'
+    REPO_URL = 'project-repo-url'
+    TARGET_DIR = 'target-directory-where-to-deploy'
+  }
+
+  stages {
+    stage('Deploy') {
+      steps {
+        // Use sshagent with credentials ID
+        sshagent(credentials: ['jenkins-ssh-key']) {
+          sh """
+            ssh -o StrictHostKeyChecking=no username@server-ip \
+              "/opt/deploy/deploy.sh \
+                '${env.PROJECT_NAME}' \
+                '${env.REPO_URL}' \
+                '${env.TARGET_DIR}'"
+          """
+        }
+      }
+    }
+  }
+  post {
+    always {
+      mail to: 'your-mail',
+           subject: "Jenkins Build Notification: ${currentBuild.fullDisplayName}",
+           body: """\
+             Build Status: ${currentBuild.currentResult}
+             Project: ${env.JOB_NAME}
+             Build Number: ${env.BUILD_NUMBER}
+             Build URL: ${env.BUILD_URL}
+             """
+    }
+  }
+}
